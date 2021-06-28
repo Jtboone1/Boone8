@@ -1,7 +1,6 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-use js_sys;
 use std::fs;
 
 #[cfg(feature = "wee_alloc")]
@@ -42,20 +41,20 @@ pub struct CHIP8 {
     delay_timer: u8,
     sound_timer: u8,
     keypad: [bool;16],
-    video: [u8;64 * 32],
+    video: [u32;64 * 32],
     opcode: u16
 }
 
 #[wasm_bindgen]
 impl CHIP8 {
     pub fn new() -> CHIP8 {
-
+        utils::set_panic_hook();
         let mut memory_init = [0;4096];
         for i in 0..FONT_SIZE {
             memory_init[FONT_SET_STARTING_ADDR + i] = FONT_SET[i];
         }
 
-        CHIP8 {
+        let mut chip8 = CHIP8 {
             registers: [0;16],
             memory: memory_init,
             index: 0,
@@ -67,7 +66,10 @@ impl CHIP8 {
             keypad: [false;16],
             video: [0;64*32],
             opcode: 0
-        }
+        };
+
+        chip8.load_rom("chip8.ch8");
+        chip8
     } 
 
     pub fn load_rom(&mut self, filename: &str) {
@@ -94,7 +96,7 @@ impl CHIP8 {
         }
     }
 
-    pub fn get_video(&self) -> *const u8 {
+    pub fn get_video(&self) -> *const u32 {
         self.video.as_ptr()
     }
 
@@ -109,7 +111,7 @@ impl CHIP8 {
 
 impl CHIP8 {
     fn generate_rand(&self) -> u8 {
-        (js_sys::Math::random() * 255.0) as u8
+        0
     }
 
     fn execute_opcode(&mut self) {
@@ -122,7 +124,7 @@ impl CHIP8 {
 
         // Common parts of opcode
         let nnn = self.opcode & 0x0FFF;
-        let kk = (self.opcode & 0x00F) as u8;
+        let kk = (self.opcode & 0x00FF) as u8;
         let x = op2 as usize;
         let y = op3 as usize;
         let vx = self.registers[x];
@@ -209,7 +211,23 @@ impl CHIP8 {
             (0xC, _, _, _) => self.registers[x] = self.generate_rand() & kk,
             // Dxyn: DRW Vx, Vy, nibble
             (0xD, _, _, _) => {
-                
+                let height = self.opcode & 0x00F;
+                let x_pos: u8 = vx % 64;
+                let y_pos: u8 = vx % 32;
+
+                self.registers[0xF] = 0;
+
+                for i in 0..height as usize {
+                    let byte: u8 = self.memory[self.index as usize + i];
+                    for j in 0..8 as usize {
+                        let pixel: u8 = byte & (0x80 >> j);
+                        let video_pixel = self.video[((y_pos as usize + i) * 64 + (x_pos as usize + j)) as usize];
+                        if pixel != 0x00 {
+                            if video_pixel == 0xFFFFFFFF { self.registers[0xF] = 1 }
+                            self.video[((y_pos as usize + 1) * 64 + (x_pos as usize + j)) as usize] ^= 0xFFFFFFFF;
+                        }
+                    }
+                }
             },
             // Ex9E: SKP Vx
             (0xE, _, 0x9, _) => if self.keypad[vx as usize] { self.pc += 2 }
