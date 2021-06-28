@@ -18,18 +18,19 @@ const ctx = canvas.getContext("2d");
 const renderLoop = () => {
   // Uncomment to debug on each tick
   // debugger;
-
-  chip8.tick();
+  for (let i = 0; i < 10; i++) {
+    chip8.tick();
+  }
   drawPixels();
 
-  animation_id = requestAnimationFrame(renderLoop);
+  requestAnimationFrame(renderLoop);
 };
 
 const getIndex = (row, column) => row * width + column;
 
 const drawPixels = () => {
   const videoPtr = chip8.get_video();
-  const pixels = new Uint32Array(memory.buffer, videoPtr, width * height);
+  const pixels = new Uint8Array(memory.buffer, videoPtr, width * height);
 
   ctx.beginPath();
 
@@ -54,7 +55,7 @@ const drawPixels = () => {
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
-      if (pixels[idx] == 1) {
+      if (pixels[idx] != 0) {
         continue;
       }
 
@@ -113,4 +114,21 @@ max of last 100 = ${Math.round(max)}
   }
 })();
 
+const loadROM = () => {
+  const memPtr = chip8.get_memory();
+  const cpu_memory = new Uint8Array(memory.buffer, memPtr, 4096);
+
+  fetch('Blinky.ch8')
+    .then(i => i.arrayBuffer())
+    .then(buffer => {
+      const romData = new DataView(buffer, 0, buffer.byteLength)
+      for (let i = 0; i < romData.byteLength; i++) {
+        cpu_memory[0x200 + i] = romData.getUint8(i);
+      }
+    })
+} 
+
+
+
+loadROM();
 renderLoop();

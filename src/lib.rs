@@ -1,7 +1,7 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-use std::fs;
+use js_sys;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -41,7 +41,7 @@ pub struct CHIP8 {
     delay_timer: u8,
     sound_timer: u8,
     keypad: [bool;16],
-    video: [u32;64 * 32],
+    video: [u8;64 * 32],
     opcode: u16
 }
 
@@ -54,7 +54,7 @@ impl CHIP8 {
             memory_init[FONT_SET_STARTING_ADDR + i] = FONT_SET[i];
         }
 
-        let mut chip8 = CHIP8 {
+        let chip8 = CHIP8 {
             registers: [0;16],
             memory: memory_init,
             index: 0,
@@ -68,18 +68,8 @@ impl CHIP8 {
             opcode: 0
         };
 
-        chip8.load_rom("chip8.ch8");
         chip8
     } 
-
-    pub fn load_rom(&mut self, filename: &str) {
-        let contents = fs::read(filename).expect("Could not open file!");
-        let filesize = fs::metadata(filename).expect("Could not read file metadata!").len();
-
-        for i in 0..filesize as usize {
-            self.memory[START_ADDR as usize + i] = contents[i];
-        }
-    }
 
     pub fn tick(&mut self) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[(self.pc + 1) as usize] as u16;
@@ -96,8 +86,12 @@ impl CHIP8 {
         }
     }
 
-    pub fn get_video(&self) -> *const u32 {
+    pub fn get_video(&self) -> *const u8 {
         self.video.as_ptr()
+    }
+
+    pub fn get_memory(&self) -> *const u8 {
+        self.memory.as_ptr()
     }
 
     pub fn set_key_down(&mut self, key: usize) {
@@ -111,7 +105,36 @@ impl CHIP8 {
 
 impl CHIP8 {
     fn generate_rand(&self) -> u8 {
-        0
+        (js_sys::Math::random() * 255.0) as u8
+    }
+
+    pub fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
+        self.memory[x + y * 64] = on as u8;
+      }
+    
+    pub fn get_pixel(&mut self, x: usize, y: usize) -> bool {
+        self.memory[x + y * 64] == 1
+    }
+
+    pub fn draw(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
+        let rows = sprite.len();
+        let mut collision = false;
+        for j in 0..rows {
+          let row = sprite[j];
+          for i in 0..8 {
+            let new_value = row >> (7 - i) & 0x01;
+            if new_value == 1 {
+              let xi = (x + i) % 64;
+              let yj = (y + j) % 32;
+              let old_value = self.get_pixel(xi, yj);
+              if old_value {
+                collision = true;
+              }
+              self.set_pixel(xi, yj, (new_value == 1) ^ old_value);
+            }
+          }
+        }
+        return collision;
     }
 
     fn execute_opcode(&mut self) {
@@ -202,7 +225,7 @@ impl CHIP8 {
                 self.registers[x] <<= 1;
             }
             // 9xy0: SNE Vx, Vy
-            (0x9, _, _, _) => if vx == vy { self.pc += 2 }
+            (0x9, _, _, _) => if vx != vy { self.pc += 2 }
             // Annn: LD I, nnn
             (0xA, _, _, _) => self.index = nnn,
             // Bnnn: JP V0, nnn
@@ -211,20 +234,25 @@ impl CHIP8 {
             (0xC, _, _, _) => self.registers[x] = self.generate_rand() & kk,
             // Dxyn: DRW Vx, Vy, nibble
             (0xD, _, _, _) => {
-                let height = self.opcode & 0x00F;
-                let x_pos: u8 = vx % 64;
-                let y_pos: u8 = vx % 32;
+                let n = self.opcode & 0x000F;
+                let start = self.index as usize;
+                let end = (self.index + n) as usize;
 
-                self.registers[0xF] = 0;
+                for (row, &pixels) in self.memory[start..end].iter().enumerate() {
+                    for col in 0..8 {
+                        // Get a pixel by masking 0x80 aka `0b10000000` and shifting the 1 right each time.
+                        if pixels & 0x80 >> col > 0 {
+                            let col = (vx as usize + col) % 64;
+                            let row = (vy as usize + row) % 32;
 
-                for i in 0..height as usize {
-                    let byte: u8 = self.memory[self.index as usize + i];
-                    for j in 0..8 as usize {
-                        let pixel: u8 = byte & (0x80 >> j);
-                        let video_pixel = self.video[((y_pos as usize + i) * 64 + (x_pos as usize + j)) as usize];
-                        if pixel != 0x00 {
-                            if video_pixel == 0xFFFFFFFF { self.registers[0xF] = 1 }
-                            self.video[((y_pos as usize + 1) * 64 + (x_pos as usize + j)) as usize] ^= 0xFFFFFFFF;
+                            let idx = col + (row * 64);
+                            let current_pixel = self.video[idx];
+                            
+                            // If the pixel has collided
+                            self.registers[0xF] = if current_pixel == 0xFF { 1 } else { 0 };
+
+                            // Here's where we actually edit the video memory
+                            self.video[idx] = current_pixel ^ 0xFF;
                         }
                     }
                 }
@@ -259,40 +287,22 @@ impl CHIP8 {
             (0xF, _, _, 0x3) => {
                 self.memory[self.index as usize + 2] = vx % 10;
                 self.memory[self.index as usize + 1] = (vx / 10) % 10;
-                self.memory[self.index as usize] = (vx % 100) % 10;
+                self.memory[self.index as usize] = (vx / 100) % 10;
             },
             // Fx55: LD [I], Vx
             (0xF, _, 0x5, _) => {
-                for i in 0..x {
+                for i in 0..=x {
                     self.memory[self.index as usize + i] = self.registers[i]; 
                 }
             }
             // Fx65: LD Vx, [I]
             (0xF, _, 0x6, _) => {
-                for i in 0..x {
+                for i in 0..=x {
                     self.registers[i] = self.memory[self.index as usize + i];
                 }
             }
             // Otherwise
             (_, _, _, _) => ()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rom_load() {
-        let mut chip = CHIP8::new();
-        chip.load_rom("chip8.ch8");
-
-        let contents = fs::read("chip8.ch8").unwrap();
-        let filesize = fs::metadata("chip8.ch8").expect("Could not read file metadata!").len();
-
-        let start_index = START_ADDR as usize;
-        let filesize_index = filesize as usize;
-        assert_eq!(&chip.memory[start_index..(start_index + filesize_index)], &contents[0..filesize_index]);
     }
 }
