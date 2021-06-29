@@ -1,6 +1,7 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
+use fixedbitset::FixedBitSet;
 use js_sys;
 
 #[cfg(feature = "wee_alloc")]
@@ -40,7 +41,7 @@ pub struct CHIP8 {
     sp: u8,
     delay_timer: u8,
     sound_timer: u8,
-    keypad: [bool;16],
+    keypad: FixedBitSet,
     video: [u8;64 * 32],
     opcode: u16
 }
@@ -63,7 +64,7 @@ impl CHIP8 {
             sp: 0,
             delay_timer: 0,
             sound_timer: 0,
-            keypad: [false;16],
+            keypad: FixedBitSet::with_capacity(16),
             video: [0;64*32],
             opcode: 0
         };
@@ -95,11 +96,15 @@ impl CHIP8 {
     }
 
     pub fn set_key_down(&mut self, key: usize) {
-        self.keypad[key] = true;
+        self.keypad.set(key, true)
     }
 
-    pub fn set_key_up(mut self, key: usize) {
-        self.keypad[key] = false;
+    pub fn set_key_up(&mut self, key: usize) {
+        self.keypad.set(key, false)
+    }
+
+    pub fn get_sound_timer(&self) -> u8 {
+        self.delay_timer
     }
 }
 
