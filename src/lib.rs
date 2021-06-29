@@ -121,27 +121,6 @@ impl CHIP8 {
         self.memory[x + y * 64] == 1
     }
 
-    pub fn draw(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
-        let rows = sprite.len();
-        let mut collision = false;
-        for j in 0..rows {
-          let row = sprite[j];
-          for i in 0..8 {
-            let new_value = row >> (7 - i) & 0x01;
-            if new_value == 1 {
-              let xi = (x + i) % 64;
-              let yj = (y + j) % 32;
-              let old_value = self.get_pixel(xi, yj);
-              if old_value {
-                collision = true;
-              }
-              self.set_pixel(xi, yj, (new_value == 1) ^ old_value);
-            }
-          }
-        }
-        return collision;
-    }
-
     fn execute_opcode(&mut self) {
         
         // Opcode nibbles for matching
