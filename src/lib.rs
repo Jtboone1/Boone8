@@ -245,7 +245,7 @@ impl CHIP8 {
 
                 for (row, &pixels) in self.memory[start..end].iter().enumerate() {
                     for col in 0..8 {
-                        // Get a pixel by masking 0x80 aka `0b10000000` and shifting the 1 right each time.
+                        // Get pixel by shifting out the MSB and shifting it for each col
                         if pixels & 0x80 >> col > 0 {
                             let col = (vx as usize + col) % 64;
                             let row = (vy as usize + row) % 32;
