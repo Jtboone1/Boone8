@@ -5,11 +5,12 @@ const chip8 = CHIP8.new();
 const width = 64;
 const height = 32;
 
-const PIXEL_SIZE = 5; // px:w
-const SET_COLOR = "white";
-const UNSET_COLOR = "black";
+const PIXEL_SIZE = 10; // px:w
+const SET_COLOR = "#00FF00";
+const UNSET_COLOR = "#000000";
 
 const canvas = document.getElementById("game_display");
+const beep = new Audio("/sounds/beep.mp3")
 
 canvas.height = (PIXEL_SIZE + 1) * height + 1;
 canvas.width = (PIXEL_SIZE + 1) * width + 1;
@@ -18,10 +19,17 @@ const ctx = canvas.getContext("2d");
 const renderLoop = () => {
   // Uncomment to debug on each tick
   // debugger;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 3; i++) {
+
+    if (chip8.get_sound_timer() !== 0) {
+      beep.play();
+    } else {
+      beep.pause();
+    }
     chip8.tick();
   }
   drawPixels();
+  
 
   requestAnimationFrame(renderLoop);
 };
@@ -71,64 +79,164 @@ const drawPixels = () => {
   ctx.stroke();
 };
 
-const fps = new (class {
-  constructor() {
-    this.fps = document.getElementById("fps");
-    this.frames = [];
-    this.lastFrameTimeStamp = performance.now();
-  }
+/*  Keypad:
+ *  1 2 3 4
+ *  q w e r
+ *  a s d f
+ *  z x c v   
+ */
 
-  render() {
-    // Convert the delta time since the last frame render into a measure
-    // of frames per second.
-    const now = performance.now();
-    const delta = now - this.lastFrameTimeStamp;
-    this.lastFrameTimeStamp = now;
-    const fps = (1 / delta) * 1000;
+window.addEventListener("keydown", e => {
+  switch (e.key) {
+    case "1": {
+      chip8.set_key_down(0x1);
+      break;
+    };
+    case "2": {
+     chip8.set_key_down(0x2);
+     break; 
+    };
+    case "3": {
+      chip8.set_key_down(0x3);
+      break;
+    };
+    case "4": {
+      chip8.set_key_down(0xC);
+      break;
+    };
+    case "a": {
+      chip8.set_key_down(0x7);
+      break;
+    };
+    case "s": {
+     chip8.set_key_down(0x8);
+     break; 
+    };
+    case "d": {
+      chip8.set_key_down(0x9);
+      break;
+    };
+    case "f": {
+      chip8.set_key_down(0xE);
+      break;
+    };
+    case "q": {
+      chip8.set_key_down(0x4);
+      break; 
+    };
+    case "w": {
+      chip8.set_key_down(0x5);
+      break; 
+    };
+    case "e": {
+      chip8.set_key_down(0x6);
+      break;
+    };
+    case "r": {
+      chip8.set_key_down(0xD);
+      break;
+    };
+    case "z": {
+      chip8.set_key_down(0xA);
+      break;
+    };
+    case "x": {
+      chip8.set_key_down(0x0);
+      break;
+    };
+    case "c": {
+      chip8.set_key_down(0xB);
+      break;
+    };
+    case "v": {
+      chip8.set_key_down(0xF);
+      break;
+    };
+  };
+});
 
-    // Save only the latest 100 timings.
-    this.frames.push(fps);
-    if (this.frames.length > 100) {
-      this.frames.shift();
-    }
-
-    // Find the max, min, and mean of our 100 latest timings.
-    let min = Infinity;
-    let max = -Infinity;
-    let sum = 0;
-    for (let i = 0; i < this.frames.length; i++) {
-      sum += this.frames[i];
-      min = Math.min(this.frames[i], min);
-      max = Math.max(this.frames[i], max);
-    }
-    let mean = sum / this.frames.length;
-
-    // Render the statistics.
-    this.fps.textContent = `
-Frames per Second:
-         latest = ${Math.round(fps)}
-avg of last 100 = ${Math.round(mean)}
-min of last 100 = ${Math.round(min)}
-max of last 100 = ${Math.round(max)}
-`.trim();
-  }
-})();
+window.addEventListener("keyup", e => {
+  switch (e.key) {
+    case "1": {
+      chip8.set_key_up(0x1);
+      break;
+    };
+    case "2": {
+     chip8.set_key_up(0x2);
+     break; 
+    };
+    case "3": {
+      chip8.set_key_up(0x3);
+      break;
+    };
+    case "4": {
+      chip8.set_key_up(0xC);
+      break;
+    };
+    case "a": {
+      chip8.set_key_up(0x7);
+      break;
+    };
+    case "s": {
+     chip8.set_key_up(0x8);
+     break; 
+    };
+    case "d": {
+      chip8.set_key_up(0x9);
+      break;
+    };
+    case "f": {
+      chip8.set_key_up(0xE);
+      break;
+    };
+    case "q": {
+      chip8.set_key_up(0x4);
+      break; 
+    };
+    case "w": {
+      chip8.set_key_up(0x5);
+      break; 
+    };
+    case "e": {
+      chip8.set_key_up(0x6);
+      break;
+    };
+    case "r": {
+      chip8.set_key_up(0xD);
+      break;
+    };
+    case "z": {
+      chip8.set_key_up(0xA);
+      break;
+    };
+    case "x": {
+      chip8.set_key_up(0x0);
+      break;
+    };
+    case "c": {
+      chip8.set_key_up(0xB);
+      break;
+    };
+    case "v": {
+      chip8.set_key_up(0xF);
+      break;
+    };
+  };
+});
 
 const loadROM = () => {
   const memPtr = chip8.get_memory();
   const cpu_memory = new Uint8Array(memory.buffer, memPtr, 4096);
 
-  fetch('Blinky.ch8')
+  fetch('/roms/Cave.ch8')
     .then(i => i.arrayBuffer())
     .then(buffer => {
       const romData = new DataView(buffer, 0, buffer.byteLength)
       for (let i = 0; i < romData.byteLength; i++) {
         cpu_memory[0x200 + i] = romData.getUint8(i);
       }
+      renderLoop();
     })
 } 
 
-
-
 loadROM();
-renderLoop();
