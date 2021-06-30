@@ -20,12 +20,16 @@ const ctx = canvas.getContext("2d");
 const renderLoop = () => {
   // Uncomment to debug on each tick
   // debugger;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
 
     if (chip8.get_sound_timer() !== 0) {
-      beep.play();
+      if (beep.paused) {
+        beep.play();
+      }
     } else {
-      beep.pause();
+      if (!beep.paused) {
+        beep.pause();
+      }
     }
     chip8.tick();
   }
@@ -93,7 +97,7 @@ const loadROM = () => {
   const memPtr = chip8.get_memory();
   const cpu_memory = new Uint8Array(memory.buffer, memPtr, 4096);
 
-  fetch('/roms/Cave.ch8')
+  fetch('/roms/Tetris.ch8')
     .then(i => i.arrayBuffer())
     .then(buffer => {
       const romData = new DataView(buffer, 0, buffer.byteLength)

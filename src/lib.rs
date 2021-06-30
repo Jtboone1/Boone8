@@ -1,3 +1,17 @@
+/* 
+ * An emulator for the Chip 8 interpreted programming language. Written in Rust and 
+ * compiled to WebAssembly!
+ * 
+ * Hosted here:
+ *
+ * TODO: Add link to a playable part of the website!
+ * 
+ * To get it running on your machine, you'd need to load the ROM into the chip8's
+ * memory through the get_memory ptr. Then you'd need to display the 32 * 64 video
+ * memory through the get_video ptr. Afterwards, all that needs to be done is make
+ * calls to the tick() method, and your off to the races!
+ */
+
 mod utils;
 
 use wasm_bindgen::prelude::*;
@@ -9,9 +23,15 @@ use js_sys;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const START_ADDR: u16 = 0x200;
-const FONT_SIZE: usize = 80;
-const FONT_SET_STARTING_ADDR: usize = 0x50;
+const WIDTH: usize = 64;
+const HEIGHT: usize = 32;
+const VIDEO_SIZE: usize = WIDTH * HEIGHT;
+const MEMORY_SIZE: usize = 4096;
 
+const FONT_SIZE: usize = 80;
+const FONT_START_ADDR: usize = 0x50;
+
+// Chip8 needs to find these in memory
 const FONT_SET: [u8;FONT_SIZE] = [
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -31,10 +51,21 @@ const FONT_SET: [u8;FONT_SIZE] = [
 	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
 
+// Reset memory function to get a memory with the loaded font set.
+fn reset_memory() -> [u8;MEMORY_SIZE] {
+
+    let mut memory_init = [0;MEMORY_SIZE];
+    for i in 0..FONT_SIZE {
+        memory_init[FONT_START_ADDR + i] = FONT_SET[i];
+    }
+
+    memory_init
+}
+
 #[wasm_bindgen]
 pub struct CHIP8 {
     registers: [u8;16],
-    memory: [u8;4096],
+    memory: [u8;MEMORY_SIZE],
     index: u16,
     pc: u16,
     stack: [u16; 16],
@@ -42,22 +73,19 @@ pub struct CHIP8 {
     delay_timer: u8,
     sound_timer: u8,
     keypad: FixedBitSet,
-    video: [u8;64 * 32],
+    video: [u8;VIDEO_SIZE],
     opcode: u16
 }
 
+// Our public API for JavaScript :D
 #[wasm_bindgen]
 impl CHIP8 {
     pub fn new() -> CHIP8 {
         utils::set_panic_hook();
-        let mut memory_init = [0;4096];
-        for i in 0..FONT_SIZE {
-            memory_init[FONT_SET_STARTING_ADDR + i] = FONT_SET[i];
-        }
 
         let chip8 = CHIP8 {
             registers: [0;16],
-            memory: memory_init,
+            memory: reset_memory(),
             index: 0,
             pc: START_ADDR,
             stack: [0;16],
@@ -65,16 +93,20 @@ impl CHIP8 {
             delay_timer: 0,
             sound_timer: 0,
             keypad: FixedBitSet::with_capacity(16),
-            video: [0;64*32],
+            video: [0;VIDEO_SIZE],
             opcode: 0
         };
 
         chip8
     } 
 
+    // How we execute each cycle of the CPU
     pub fn tick(&mut self) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[(self.pc + 1) as usize] as u16;
 
+        // The Chip8 interprets the memory in two bytes,
+        // so to perform the next action, we must increment
+        // by two.
         self.pc += 2;
         self.execute_opcode();
 
@@ -87,12 +119,54 @@ impl CHIP8 {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.registers = [0;16];
+        self.memory = reset_memory();
+        self.index = 0;
+        self.pc = START_ADDR;
+        self.stack = [0;16];
+        self.sp = 0;
+        self.delay_timer = 0;
+        self.sound_timer = 0;
+        self.keypad = FixedBitSet::with_capacity(16);
+        self.video = [0;VIDEO_SIZE];
+        self.opcode = 0
+    }
+
     pub fn get_video(&self) -> *const u8 {
         self.video.as_ptr()
     }
 
     pub fn get_memory(&self) -> *const u8 {
         self.memory.as_ptr()
+    }
+
+    pub fn get_index(&self) -> u16 {
+        self.index
+    }
+
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+
+    pub fn get_registers(&self) -> *const u8 {
+        self.registers.as_ptr()
+    }
+
+    pub fn get_sound_timer(&self) -> u8 {
+        self.delay_timer
+    }
+
+    pub fn get_opcode(&self) -> u16 {
+        self.opcode
+    }
+
+    pub fn get_stack(&self) -> *const u16 {
+        self.stack.as_ptr()
+    }
+
+    pub fn get_stack_ptr(&self) -> u8 {
+        self.sp
     }
 
     pub fn set_key_down(&mut self, key: usize) {
@@ -102,23 +176,15 @@ impl CHIP8 {
     pub fn set_key_up(&mut self, key: usize) {
         self.keypad.set(key, false)
     }
-
-    pub fn get_sound_timer(&self) -> u8 {
-        self.delay_timer
-    }
 }
 
 impl CHIP8 {
+
+    // Rand crate doesn't have support for our wasm
+    // target, so we just use the JavaScript's Math::Random
+    // instead for the random instruction.
     fn generate_rand(&self) -> u8 {
         (js_sys::Math::random() * 255.0) as u8
-    }
-
-    pub fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
-        self.memory[x + y * 64] = on as u8;
-      }
-    
-    pub fn get_pixel(&mut self, x: usize, y: usize) -> bool {
-        self.memory[x + y * 64] == 1
     }
 
     fn execute_opcode(&mut self) {
@@ -137,9 +203,10 @@ impl CHIP8 {
         let vx = self.registers[x];
         let vy = self.registers[y];
 
+        // Logic for interpretting each opcode
         match (op1, op2, op3, op4) {
             // 00E0: CLS
-            (0x0, 0x0, 0xE, 0x0) => self.video = [0;32 * 64],
+            (0x0, 0x0, 0xE, 0x0) => self.video = [0;VIDEO_SIZE],
             // 00EE: RET
             (0x0, 0x0, 0xE, 0xE) => {
                 self.sp -= 1;
@@ -226,10 +293,10 @@ impl CHIP8 {
                     for col in 0..8 {
                         // Get pixel by shifting out the MSB and shifting it for each col
                         if pixels & 0x80 >> col > 0 {
-                            let col = (vx as usize + col) % 64;
-                            let row = (vy as usize + row) % 32;
+                            let col = (vx as usize + col) % WIDTH;
+                            let row = (vy as usize + row) % HEIGHT;
 
-                            let idx = col + (row * 64);
+                            let idx = col + (row * WIDTH);
                             let current_pixel = self.video[idx];
                             
                             // If the pixel has collided
@@ -266,7 +333,7 @@ impl CHIP8 {
             // Fx1E: ADD I, Vx
             (0xF, _, _, 0xE) => self.index += vx as u16,
             // Fx29: LD F, Vx
-            (0xF, _, _, 0x9) => self.index = FONT_SET_STARTING_ADDR as u16 + (vx as u16 * 5),
+            (0xF, _, _, 0x9) => self.index = FONT_START_ADDR as u16 + (vx as u16 * 5),
             // Fx33: LD B, Vx
             (0xF, _, _, 0x3) => {
                 self.memory[self.index as usize + 2] = vx % 10;
@@ -287,6 +354,6 @@ impl CHIP8 {
             }
             // Otherwise
             (_, _, _, _) => ()
-        }
+        };
     }
 }
