@@ -11,7 +11,7 @@ const SET_COLOR = "#00FF00";
 const UNSET_COLOR = "#000000";
 
 const canvas = document.getElementById("game_display");
-const beep = new Audio("/sounds/beep.mp3")
+const beep = new Audio("/sounds/beep.mp3");
 
 canvas.height = (PIXEL_SIZE + 1) * height + 1;
 canvas.width = (PIXEL_SIZE + 1) * width + 1;
@@ -20,7 +20,8 @@ const ctx = canvas.getContext("2d");
 const renderLoop = () => {
   // Uncomment to debug on each tick
   // debugger;
-  for (let i = 0; i < 2; i++) {
+
+  for (let i = 0; i < 1; i++) {
 
     if (chip8.get_sound_timer() !== 0) {
       if (beep.paused) {
@@ -47,6 +48,11 @@ const drawPixels = () => {
 
   ctx.beginPath();
 
+  // fillStyle is separated into two for loops
+  // so that we don't need to call fillStyle on 
+  // each pixel change, as it's rather expensive. 
+  // It's much better for performance to only set 
+  // the color twice per render.
   ctx.fillStyle = SET_COLOR;
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
@@ -97,13 +103,17 @@ const loadROM = () => {
   const memPtr = chip8.get_memory();
   const cpu_memory = new Uint8Array(memory.buffer, memPtr, 4096);
 
-  fetch('/roms/Tetris.ch8')
+  fetch('/roms/Cave.ch8')
     .then(i => i.arrayBuffer())
     .then(buffer => {
       const romData = new DataView(buffer, 0, buffer.byteLength)
       for (let i = 0; i < romData.byteLength; i++) {
         cpu_memory[0x200 + i] = romData.getUint8(i);
       }
+
+      // After the ROM is loaded into memory, start rendering.
+      // If we do this outside of a callback, weird visual bugs
+      // will occur.
       renderLoop();
     })
 } 

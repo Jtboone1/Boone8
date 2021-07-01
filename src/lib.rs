@@ -361,3 +361,59 @@ impl CHIP8 {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup_opcode(opcode_test: u16) -> CHIP8 {
+        let op1 = (opcode_test & 0xFF00) >> 8;
+        let op2 = opcode_test & 0x00FF;
+
+        let mut chip8 = CHIP8::new();
+        chip8.pc = 0x200;
+        chip8.memory[0x200] = op1 as u8;
+        chip8.memory[0x201] = op2 as u8;
+
+        chip8
+    }
+
+    #[test]
+    fn test_00e0() {
+        let mut test = setup_opcode(0x00E0);
+        test.video = [1;VIDEO_SIZE];
+        test.tick();
+        assert_eq!(test.video, [0;VIDEO_SIZE]);
+    }
+
+    #[test]
+    fn test_fx15() {
+        let mut test = setup_opcode(0xF515);
+        test.registers[0x5] = 0x2B;
+        test.tick();
+        assert_eq!(test.delay_timer, 0x2A);
+    }
+
+    #[test]
+    fn test_7xkk() {
+        let mut test = setup_opcode(0x7605);
+        test.registers[0x6] = 0xE5;
+        test.tick();
+        assert_eq!(test.registers[0x6], 0xEA);
+    }
+
+    #[test]
+    fn test_1nnn() {
+        let mut test = setup_opcode(0x1333);
+        test.tick(); 
+        assert_eq!(test.pc, 0x333);
+    }
+
+    #[test]
+    fn test_fx0a() {
+        let mut test = setup_opcode(0xF70A);
+        test.keypad.set(0x5, true);
+        test.tick();
+        assert_eq!(test.registers[0x7], 0x5);
+    }
+}

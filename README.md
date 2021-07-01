@@ -4,13 +4,8 @@
 A Chip8 Emulator created in Rust and compiled to WebAssembly 🦀
 </div>
 
-## Usage
-
-```
-import { CHIP8 } from "chip_8_wasm";
-import { memory } from "chip_8_wasm/chip_8_wasm_bg";
-// TODO: Add further examples!
-```
+## Example Usage
+You can get a Chip8 interface up and running by using the example under the examples folder.
 
 ## About the JavaScript API
 
