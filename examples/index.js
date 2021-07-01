@@ -21,7 +21,7 @@ const renderLoop = () => {
   // Uncomment to debug on each tick
   // debugger;
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 10; i++) {
 
     if (chip8.get_sound_timer() !== 0) {
       if (beep.paused) {
@@ -103,7 +103,7 @@ const loadROM = () => {
   const memPtr = chip8.get_memory();
   const cpu_memory = new Uint8Array(memory.buffer, memPtr, 4096);
 
-  fetch('/roms/Cave.ch8')
+  fetch('/roms/Blinky.ch8')
     .then(i => i.arrayBuffer())
     .then(buffer => {
       const romData = new DataView(buffer, 0, buffer.byteLength)
