@@ -10,7 +10,7 @@ You can get a Chip8 interface up and running by using the example under the exam
 ## About the JavaScript API
 
 The API exposed by the WASM module allows any form of JavaScript to import the
-memory and methods of the CHIP8 structure created in the rust code!
+memory and methods of the Chip8 structure created in the rust code!
 
 ## API Methods
 | Name | Params | Usage |
