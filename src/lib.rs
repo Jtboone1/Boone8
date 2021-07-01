@@ -6,9 +6,9 @@
  *
  * TODO: Add link to a playable part of the website!
  * 
- * To get it running on your machine, you'd need to load the ROM into the chip8's
- * memory through the get_memory ptr. Then you'd need to display the 32 * 64 video
- * memory through the get_video ptr. Afterwards, all that needs to be done is make
+ * To get it running on your machine, you'd need to load the ROM into the Chip8's
+ * memory through the get_memory() ptr. Then you'd need to display the 32 * 64 video
+ * memory through the get_video() ptr. Afterwards, all that needs to be done is make
  * calls to the tick() method, and your off to the races!
  */
 
@@ -154,6 +154,10 @@ impl CHIP8 {
     }
 
     pub fn get_sound_timer(&self) -> u8 {
+        self.sound_timer
+    }
+
+    pub fn get_delay_timer(&self) -> u8 {
         self.delay_timer
     }
 
@@ -161,11 +165,11 @@ impl CHIP8 {
         self.opcode
     }
 
-    pub fn get_stack(&self) -> *const u16 {
+    pub fn get_stack_ptr(&self) -> *const u16 {
         self.stack.as_ptr()
     }
 
-    pub fn get_stack_ptr(&self) -> u8 {
+    pub fn get_stack_index(&self) -> u8 {
         self.sp
     }
 

@@ -1,69 +1,36 @@
+
 <div align="center">
-
-  <h1><code>wasm-pack-template</code></h1>
-
-  <strong>A template for kick starting a Rust and WebAssembly project using <a href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>.</strong>
-
-  <p>
-    <a href="https://travis-ci.org/rustwasm/wasm-pack-template"><img src="https://img.shields.io/travis/rustwasm/wasm-pack-template.svg?style=flat-square" alt="Build Status" /></a>
-  </p>
-
-  <h3>
-    <a href="https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html">Tutorial</a>
-    <span> | </span>
-    <a href="https://discordapp.com/channels/442252698964721669/443151097398296587">Chat</a>
-  </h3>
-
-  <sub>Built with 🦀🕸 by <a href="https://rustwasm.github.io/">The Rust and WebAssembly Working Group</a></sub>
+<h1><code>Boone8</code></h1>
+A Chip8 Emulator created in Rust and compiled to WebAssembly 🦀
 </div>
 
-## About
-
-[**📚 Read this template tutorial! 📚**][template-docs]
-
-This template is designed for compiling Rust libraries into WebAssembly and
-publishing the resulting package to NPM.
-
-Be sure to check out [other `wasm-pack` tutorials online][tutorials] for other
-templates and usages of `wasm-pack`.
-
-[tutorials]: https://rustwasm.github.io/docs/wasm-pack/tutorials/index.html
-[template-docs]: https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html
-
-## 🚴 Usage
-
-### 🐑 Use `cargo generate` to Clone this Template
-
-[Learn more about `cargo generate` here.](https://github.com/ashleygwilliams/cargo-generate)
+## Usage
 
 ```
-cargo generate --git https://github.com/rustwasm/wasm-pack-template.git --name my-project
-cd my-project
+import { CHIP8 } from "chip_8_wasm";
+import { memory } from "chip_8_wasm/chip_8_wasm_bg";
+// TODO: Add further examples!
 ```
 
-### 🛠️ Build with `wasm-pack build`
+## About the JavaScript API
 
-```
-wasm-pack build
-```
+The API exposed by the WASM module allows any form of JavaScript to import the
+memory and methods of the CHIP8 structure created in the rust code!
 
-### 🔬 Test in Headless Browsers with `wasm-pack test`
-
-```
-wasm-pack test --headless --firefox
-```
-
-### 🎁 Publish to NPM with `wasm-pack publish`
-
-```
-wasm-pack publish
-```
-
-## 🔋 Batteries Included
-
-* [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen) for communicating
-  between WebAssembly and JavaScript.
-* [`console_error_panic_hook`](https://github.com/rustwasm/console_error_panic_hook)
-  for logging panic messages to the developer console.
-* [`wee_alloc`](https://github.com/rustwasm/wee_alloc), an allocator optimized
-  for small code size.
+## API Methods
+| Name | Params | Usage |
+|---|---|:---|
+|```tick```||Execute a cycle in the Chip8's CPU. You'd want to call this in a loop in order to start processing the opcodes from the loaded ROM.|
+|```reset```||Resets the Chip8's memory back to it's original state.|
+|```get_memory```||Returns a pointer to the storage memory. You'd want to store this in a new ```Uint8Array``` in order to retrieve it from the WASM memory.
+|```get_video```||Returns a pointer to the video memory. Same as ```get_memory()```, you'd want to use a ```Uint8Array``` for storage.|
+|```get_index```||Returns the 16-bit index register used to store memory locations that are used in operations.|
+|```get_pc```||Returns the 16-bit program counter that holds the address to the next instruction that the Chip8 will execute.|
+|```get_registers```||Returns a pointer to the 16 8-bit registers used to store memory used in operations|
+|```get_stack_ptr```||Returns a pointer to the 16 16-bit stack array, used to keep track of the order of execution of the CPU|
+|```get_stack_index```||Get the index that keeps track of where we are in the CPU's stack|
+|```get_opcode```||Returns the 16-bit opcode that is being executed|
+|```get_delay_timer```||Returns the 8-bit timer used to signal delays when it !== 0|
+|```get_sound_timer```||Returns the 8-bit timer used to signal that a sound should be played when it !== 0|
+|```set_key_down```|```key: usize```|Signals that the key address specified should be set to true| 
+|```set_key_up```|```key: usize```|Signals that the key address specified should be set to false| 
