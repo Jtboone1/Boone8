@@ -1,5 +1,5 @@
 /* 
- * An emulator for the Chip 8 interpreted programming language. Written in Rust and 
+ * An emulator for the Chip8 interpreted programming language. Written in Rust and 
  * compiled to WebAssembly!
  * 
  * Hosted here:
