@@ -1,5 +1,5 @@
-import { CHIP8 } from "chip_8_wasm";
-import { memory } from "chip_8_wasm/chip_8_wasm_bg";
+import { CHIP8 } from "boone8";
+import { memory } from "boone8/boone8_bg";
 import * as keyhandle from "./keypad";
 
 const chip8 = CHIP8.new();
