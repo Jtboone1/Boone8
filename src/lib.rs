@@ -4,7 +4,7 @@
  * 
  * Hosted here:
  *
- * TODO: Add link to a playable part of the website!
+ * https://jarrodboone.info/Projects/Chip8
  * 
  * To get it running on your machine, you'd need to load the ROM into the Chip8's
  * memory through the get_memory() ptr. Then you'd need to display the 32 * 64 video
