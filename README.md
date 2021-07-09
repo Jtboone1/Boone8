@@ -6,7 +6,7 @@ A Chip8 Emulator created in Rust and compiled to WebAssembly 🦀
 
 ## Example Usage
 You can get a Chip8 interface up and running by using the example under the examples folder.
-However, if wrestling with WASM doesn't seem like your cup of tea, the example is also hosted at:
+However, if wrestling with WASM doesn't seem like your cup of tea, the example is also hosted at
 <a href="https://jarrodboone.info/Projects/Chip8">https://jarrodboone.info/Projects/Chip8</a> 
 
 ## About the JavaScript API
