@@ -133,43 +133,43 @@ impl CHIP8 {
         self.opcode = 0
     }
 
-    pub fn get_video(&self) -> *const u8 {
+    pub fn get_video(&mut self) -> *const u8 {
         self.video.as_ptr()
     }
 
-    pub fn get_memory(&self) -> *const u8 {
+    pub fn get_memory(&mut self) -> *const u8 {
         self.memory.as_ptr()
     }
 
-    pub fn get_index(&self) -> u16 {
+    pub fn get_index(&mut self) -> u16 {
         self.index
     }
 
-    pub fn get_pc(&self) -> u16 {
+    pub fn get_pc(&mut self) -> u16 {
         self.pc
     }
 
-    pub fn get_registers(&self) -> *const u8 {
+    pub fn get_registers(&mut self) -> *const u8 {
         self.registers.as_ptr()
     }
 
-    pub fn get_sound_timer(&self) -> u8 {
+    pub fn get_sound_timer(&mut self) -> u8 {
         self.sound_timer
     }
 
-    pub fn get_delay_timer(&self) -> u8 {
+    pub fn get_delay_timer(&mut self) -> u8 {
         self.delay_timer
     }
 
-    pub fn get_opcode(&self) -> u16 {
+    pub fn get_opcode(&mut self) -> u16 {
         self.opcode
     }
 
-    pub fn get_stack_ptr(&self) -> *const u16 {
+    pub fn get_stack_ptr(&mut self) -> *const u16 {
         self.stack.as_ptr()
     }
 
-    pub fn get_stack_index(&self) -> u8 {
+    pub fn get_stack_index(&mut self) -> u8 {
         self.sp
     }
 
